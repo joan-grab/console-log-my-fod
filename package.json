@@ -1,0 +1,22 @@
+{
+  "name": "console-log-my-food",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joan-grab/console-log-my-food.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/joan-grab/console-log-my-food/issues"
+  },
+  "homepage": "https://github.com/joan-grab/console-log-my-food#readme",
+  "dependencies": {
+    "axios": "^0.21.1"
+  }
+}
