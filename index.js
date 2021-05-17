@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 const { default: axios } = require('axios');
-const { Console } = require('console');
+const { Console, time } = require('console');
 
 const readline = require('readline').createInterface({
     input: process.stdin,
@@ -21,14 +21,19 @@ readline.on('line', async line => {
 
             // genrator 
             function* listVeganFoods() {
-                let idx = 0;
-                const veganOnly = data.filter(food => 
-                    food.dietary_preferences.includes('vegan')
-                );
+                try {
+                    let idx = 0;
+                    const veganOnly = data.filter(food => 
+                        food.dietary_preferences.includes('vegan')
+                    );
+    
+                    while(veganOnly[idx]) {
+                        yield veganOnly[idx];
+                        idx++;
+                    }
 
-                while(veganOnly[idx]) {
-                    yield veganOnly[idx];
-                    idx++;
+                } catch (error) {
+                    console.log('Something went wrong while listing vegan items', {error});
                 }
             }
                 
@@ -70,14 +75,6 @@ readline.on('line', async line => {
             const it = data[Symbol.iterator]();
             let actionIt;
 
-            // genrator
-
-            function* actionGenreator() {
-                const food = yield;
-                const servingSize = yield askForServingSize();
-                yield displayCalories(servingSize, food);
-            }
-
             // custon iterator
 
             // const actionIterator = {
@@ -109,12 +106,26 @@ readline.on('line', async line => {
             //     actions: [askForServingSize, displayCalories],
             // };
 
+            // genrator
+
+            function* actionGenreator() {
+                try {
+                    const food = yield;
+                    const servingSize = yield askForServingSize();
+                    yield displayCalories(servingSize, food);
+                } catch (error) {
+                    console.log({error});
+                }
+            }
+
             function askForServingSize(food) {
                 readline.question(
                     "How many servings did you eat? (as a decimal: 1, 0.5, 1.25, etc...) or type 'nevermind' or 'n' if you don't wannna answer this question.",
                     servingSize => {
                         if (servingSize === 'nevermind' || servingSize === 'n') {
                             actionIt.return();
+                        } else if (typeof servingSize !== 'number' || servingSize === NaN) {
+                            actionIt.throw('Please, number only');
                         } else {
                             actionIt.next(servingSize, food);
                         }
@@ -172,10 +183,54 @@ readline.on('line', async line => {
                 }
                 readline.prompt();
             });
-            break; 
         }
+        break; 
+
+        case 'today log': {
+            readline.question('Email: ', async emailAddress => {
+                const {data} = await axios.get(`http://localhost:3001/users?email=${emailAddress}`);
+                
+                const foodLog = data[0].log || [];
+                let totalCalories = 0;
+
+                function* getFoodLog() {
+                    try {
+                        yield* foodLog;
+                    } catch (error) {
+                        console.log('Error reading the log', {error});
+                    }             
+                }
+
+                const logIterator = getFoodLog();
+                for (const entry of logIterator) {
+                    const timestamp = Object.keys(entry)[0];
+                    if (isToday(new Date(Number(timestamp)))) {
+                        console.log(`${entry[timestamp].food}, ${entry[timestamp].servingSize} serving(s)`);
+                        totalCalories += entry[timestamp].calories;
+                        if (totalCalories >= 12000) {
+                            console.log(`Impressive how much you've eaten!`);
+                            logIterator.return();
+                        };
+                    };
+                }
+                console.log('------------');
+                console.log(`Total calories: ${totalCalories}`);
+                readline.prompt();
+            });
+        }
+        break;
+        
     }
     readline.prompt();
 });
+
+function isToday(timestamp) {
+    const today = new Date();
+    return (
+        timestamp.getDate() === today.getDate() &&
+        timestamp.getMonth() === today.getMonth() &&
+        timestamp.getFullYear() === today.getFullYear()
+    )
+}
 
 
