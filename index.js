@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 
 const { default: axios } = require('axios');
+const { Console } = require('console');
 
 const readline = require('readline').createInterface({
     input: process.stdin,
@@ -16,34 +17,51 @@ readline.on('line', async line => {
         
         case 'list vegan foods': {
             console.log('vegan food list:');
-            axios.get(`http://localhost:3001/food`).then(({data}) => {
-                
+            const {data} = await axios.get(`http://localhost:3001/food`);
+
+            // genrator 
+            function* listVeganFoods() {
+                let idx = 0;
                 const veganOnly = data.filter(food => 
                     food.dietary_preferences.includes('vegan')
                 );
-                
-                let idx = 0;
-                const veganIterable = {
-                    [Symbol.iterator]() {
-                        return {
-                            [Symbol.iterator]() {return this;},
-                            next() {
-                                const current = veganOnly[idx];
-                                idx++;
-                                if (current) {
-                                    return {value: current, done: false};
-                                } else {
-                                    return {value: current, done: true};
-                                }
-                            },
-                        };
-                    },
-                };
-                for (let val of veganIterable) {
-                    console.log(val.name);
+
+                while(veganOnly[idx]) {
+                    yield veganOnly[idx];
+                    idx++;
                 }
-                readline.prompt();
-            });
+            }
+                
+                // custom iterator
+
+                // const veganIterable = {
+                //     [Symbol.iterator]() {
+                //         return {
+                //             [Symbol.iterator]() {return this;},
+                //             next() {
+                //                 const current = veganOnly[idx];
+                //                 idx++;
+                //                 if (current) {
+                //                     return {value: current, done: false};
+                //                 } else {
+                //                     return {value: current, done: true};
+                //                 }
+                //             },
+                //         };
+                //     },
+                // };
+
+
+                // for (let val of veganIterable) {
+                //     console.log(val.name);
+                // }
+
+            for (let val of listVeganFoods()) {
+                console.log(val.name);
+            }
+
+            readline.prompt();
+
         }
         break;
         
@@ -52,34 +70,44 @@ readline.on('line', async line => {
             const it = data[Symbol.iterator]();
             let actionIt;
 
-            const actionIterator = {
-                [Symbol.iterator]() {
-                    let positions = [...this.actions];
-                    return {
-                        [Symbol.iterator]() {
-                            return this;
-                        },
-                        next(...args) {
-                            if (positions.length > 0) {
-                                const position = positions.shift();
-                                const result = position(...args);
-                                return {value: result, done: false};
-                            } else {
-                                return { done: true };
-                            }
-                        },
-                        return() {
-                            positions = [];
-                            return {done: true};
-                        },
-                        throw(error) {
-                            console.log(error);
-                            return {value: undefined, done: true};
-                        },
-                    };
-                },
-                actions: [askForServingSize, displayCalories],
-            };
+            // genrator
+
+            function* actionGenreator() {
+                const food = yield;
+                const servingSize = yield askForServingSize();
+                yield displayCalories(servingSize, food);
+            }
+
+            // custon iterator
+
+            // const actionIterator = {
+            //     [Symbol.iterator]() {
+            //         let positions = [...this.actions];
+            //         return {
+            //             [Symbol.iterator]() {
+            //                 return this;
+            //             },
+            //             next(...args) {
+            //                 if (positions.length > 0) {
+            //                     const position = positions.shift();
+            //                     const result = position(...args);
+            //                     return {value: result, done: false};
+            //                 } else {
+            //                     return { done: true };
+            //                 }
+            //             },
+            //             return() {
+            //                 positions = [];
+            //                 return {done: true};
+            //             },
+            //             throw(error) {
+            //                 console.log(error);
+            //                 return {value: undefined, done: true};
+            //             },
+            //         };
+            //     },
+            //     actions: [askForServingSize, displayCalories],
+            // };
 
             function askForServingSize(food) {
                 readline.question(
@@ -129,7 +157,15 @@ readline.on('line', async line => {
                     const food = position.value.name;
                     if (food === item) {
                         console.log(`${item} has ${position.value.calories} calories.`);
-                        actionIt = actionIterator[Symbol.iterator]();
+
+                        // for iterator :
+                        // actionIt = actionIterator[Symbol.iterator]();
+                        // actionIt.next(position.value);
+
+                        // for generator :
+
+                        actionIt = actionGenreator();
+                        actionIt.next();
                         actionIt.next(position.value);
                     }
                     position = it.next();
