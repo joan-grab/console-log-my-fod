@@ -129,6 +129,27 @@
             "servingSize": "6",
             "calories": 1380
           }
+        },
+        {
+          "1621284727422": {
+            "food": "apple",
+            "servingSize": "3",
+            "calories": 264
+          }
+        },
+        {
+          "1621284757719": {
+            "food": "lentils",
+            "servingSize": "23",
+            "calories": 5290
+          }
+        },
+        {
+          "1621285328889": {
+            "food": "chicken breast",
+            "servingSize": "55",
+            "calories": 6875
+          }
         }
       ]
     }
